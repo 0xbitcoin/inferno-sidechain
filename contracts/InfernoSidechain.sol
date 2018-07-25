@@ -97,6 +97,20 @@ contract MiningKingInterface {
 }
 
 
+//A lava packet but for the sidechain 
+struct TXPacket
+{
+ address from;
+ address to;
+ address token;
+ uint256 tokens;
+ uint256 relayerReward;
+ uint256 expires;
+ uint256 nonce;
+ bytes signature;
+}
+
+
 contract InfernoSidechain   {
 
   //mapping(address => mapping (address => uint256)) balances;
@@ -118,6 +132,10 @@ contract InfernoSidechain   {
 
    //locked tokens - only the sidechainToken type is allowed
    mapping(address => uint256) balances;
+
+   //hash -> signature
+   //must verify endpoint TX in order to use them to unlock and to prove fraud
+   mapping(bytes32 => bytes32) verifiedEndpointTransaction;
 
 
    // 0xBTC is 0xb6ed7644c69416d67b522e20bc294a9a9b405b31;
@@ -146,7 +164,10 @@ contract InfernoSidechain   {
 
     [There should be a reward for the king doing this - maybea fee when someone uses their state root hash to exit]
 
-    [Remember that it is possible for the king to submit boxus state root hashes]
+    [Remember that it is possible for the king to submit bogus(EMPTY) state root hashes]
+
+
+    To get the stateBlockHash, one must simply 'combine' the solidity keccak256 hashes of all the Sidechain TX Signatures   (hashes ?)
   */
    function addRootHash(bytes32 stateBlockHash) public   {
 
@@ -173,6 +194,8 @@ contract InfernoSidechain   {
 
 
    //able to use lava ?  approveAndCall?
+
+   //Once they are deposited and locked, they belong to the same Eth Address but on the sidechain
    function depositTokensToSidechain(from, tokens) public returns (bool)
    {
      //requires approval first
@@ -184,6 +207,27 @@ contract InfernoSidechain   {
    }
 
 
+
+   // method = 'transfer' typically
+   /*
+    This method makes the contract aware of the specific details of a 'lava packet' transaction
+    This method must be ran before starting an unlock with a sigHash or before proving fraud with a sigHash
+
+   */
+   function identifyEndpointTransaction(string method, address from, address to, address token, uint256 tokens, uint256 relayerReward,
+                                     uint256 expires, uint256 nonce, bytes signature)
+   {
+
+     bytes32 sigHash = getLavaTypedDataHash(method,from,to,token,tokens,relayerReward,expires,nonce);
+
+     address recoveredSignatureSigner = ECRecovery.recover(sigHash,signature);
+
+     require( recoveredSignatureSigner == from );
+
+     verifiedEndpointTransaction[sigHash] = signature;
+
+   }
+
 /**
   Exit tokens out of the sidechain - has a one week delay based on ETH blocks
 
@@ -194,13 +238,13 @@ contract InfernoSidechain   {
   which show that funds have been moved to the exiting owner.
 **/
 
-   function startFundsUnlock( proof, root, leaf  ) returns (bool)
+   function startFundsUnlock( proof, root, leaf , sigHash  ) returns (bool)
    {
      //check the lava packet
-     //can do lots of computation but do not do too much storage as that is gas-costly ! 
+     //can do lots of computation but do not do too much storage as that is gas-costly !
 
 
-     require(  )
+     require( verifiedEndpointTransaction[sigHash] )
       //use merkle proof
 
    }
@@ -227,6 +271,22 @@ contract InfernoSidechain   {
 
      //transfer tokens out to the recipient
 
+   }
+
+
+
+   function getLavaTypedDataHash(bytes methodname, address from, address to, address token, uint256 tokens, uint256 relayerReward,
+                                     uint256 expires, uint256 nonce) public constant returns (bytes32)
+   {
+         bytes32 hardcodedSchemaHash = 0x8fd4f9177556bbc74d0710c8bdda543afd18cc84d92d64b5620d5f1881dceb37; //with methodname
+
+
+        bytes32 typedDataHash = sha3(
+            hardcodedSchemaHash,
+            sha3(methodname,from,to,this,token,tokens,relayerReward,expires,nonce)
+          );
+
+        return typedDataHash;
    }
 
 /*
