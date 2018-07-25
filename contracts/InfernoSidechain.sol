@@ -9,7 +9,7 @@ import "./MerkleProof.sol";
 /*
 Contract for operating and maintaining an Inferno Sidechain
 
-This is an Ethereum plasma-like sidechain using Merkle Proofs and Time-Delayed Withdrawls 
+This is an Ethereum plasma-like sidechain using Merkle Proofs and Time-Delayed Withdrawls
 
 
 
@@ -196,6 +196,10 @@ contract InfernoSidechain   {
 
    function startFundsUnlock( proof, root, leaf  ) returns (bool)
    {
+     //check the lava packet
+     //can do lots of computation but do not do too much storage as that is gas-costly ! 
+
+
      require(  )
       //use merkle proof
 
