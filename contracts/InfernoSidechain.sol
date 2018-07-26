@@ -166,6 +166,12 @@ struct Transaction
   uint fee;
 }
 
+struct ExitTransaction
+{
+  address submitter;
+  TxInput position;
+}
+
 
 //Plasma Implementation using Proof Of Work to determine block hash authority
 contract InfernoSidechain   {
@@ -188,12 +194,18 @@ contract InfernoSidechain   {
    mapping(uint256 => BlockHeader) merkleStateBlock ;
 
 
+   //(i) the submitter address, and (ii) the UTXO position
+   //(Plasma block number, txindex, outindex). This must be stored in a data structure
+   // that allows transactions to be popped from the set in order of priority.
+   mapping(uint => ExitTransaction) submittedExitTransaction;
+
+
    //locked tokens - only the sidechainToken type is allowed
    mapping(address => uint256) balances;
 
    //hash -> signature
    //must verify endpoint TX in order to use them to unlock and to prove fraud
-   mapping(bytes32 => bytes32) verifiedEndpointTransaction;
+   //mapping(bytes32 => bytes32) verifiedEndpointTransaction;
 
 
    // 0xBTC is 0xb6ed7644c69416d67b522e20bc294a9a9b405b31;
@@ -249,9 +261,9 @@ contract InfernoSidechain   {
 
 
        merkleStateBlock[plasmaBlockNumber] = BlockHeader({
-         blockNumber: plasmaBlockNumber;
-         stateRootHash: merkleStateRootHash; // the combined hash of ALL elements all together
-         authority: msg.sender;
+         blockNumber: plasmaBlockNumber,
+         stateRootHash: merkleStateRootHash, // the combined hash of ALL elements all together
+         authority: msg.sender
 
          })
 
@@ -265,6 +277,14 @@ contract InfernoSidechain   {
 
    //depositTokensToSidechain
    //Once they are deposited and locked, they belong to the same Eth Address but on the sidechain
+
+   /*
+   Second, anyone can deposit any quantity of ETH into the chain, and when they do so
+    the contract adds to the chain a block that contains exactly one transaction,
+   creating a new UTXO with denomination equal to the amount that they deposit.
+
+   How to prevent owner from minting fake sidechain money by making new UXTOs?
+   */
    function deposit(from, tokens) public returns (bool)
    {
      //requires approval first
@@ -272,8 +292,48 @@ contract InfernoSidechain   {
 
      balances[from] = balances[from].add(tokens);
 
+     //add a UTXO block
+
+     bytes32 root = keccak256(from,this,tokens);
+     merkleStateBlock[plasmaBlockNumber] = BlockHeader({
+            blockNumber: plasmaBlockNumber,
+            stateRootHash: root,
+            authority: this
+        });
+
+
+
+       plasmaBlockNumber+=1;
+
+
      return true;
    }
+
+
+
+   /**
+      * @dev Starts an exit from a deposit.
+      * @param _depositPos UTXO position of the deposit.
+      * @param _token Token type to deposit.
+      * @param _amount Deposit amount.
+
+      https://github.com/omisego/plasma-mvp/blob/master/plasma/root_chain/contracts/RootChain.sol
+      */
+     function startDepositExit(uint256 _depositPos, address _token, uint256 _amount)
+         public
+     {
+         uint256 blknum = _depositPos / 1000000000;
+
+         // Check that the given UTXO is a deposit.
+         require(blknum % CHILD_BLOCK_INTERVAL != 0);
+
+         // Validate the given owner and amount.
+         bytes32 root = childChain[blknum].root;
+         bytes32 depositHash = keccak256(msg.sender, _token, _amount);
+         require(root == depositHash);
+
+         addExitToQueue(_depositPos, msg.sender, _token, _amount, childChain[blknum].timestamp);
+     }
 
 
 
@@ -283,7 +343,7 @@ contract InfernoSidechain   {
     This method must be ran before starting an unlock with a sigHash or before proving fraud with a sigHash
 
    */
-   function identifyEndpointTransaction(string method, address from, address to, address token, uint256 tokens, uint256 relayerReward,
+  /* function identifyEndpointTransaction(string method, address from, address to, address token, uint256 tokens, uint256 relayerReward,
                                      uint256 expires, uint256 nonce, bytes signature)
    {
 
@@ -295,7 +355,7 @@ contract InfernoSidechain   {
 
      verifiedEndpointTransaction[sigHash] = signature;
 
-   }
+   }*/
 
 /**
   Exit tokens out of the sidechain - has a one week delay based on ETH blocks
@@ -323,7 +383,13 @@ contract InfernoSidechain   {
      //  proof, root, leaf , sigHash
      //can do lots of computation but do not do too much storage as that is gas-costly !
 
-      //check confirm signature from each of the previous owners of the now-spent outputs that were used to create the UTXO.
+      //1) check confirm signature from each of the previous owners of the now-spent outputs that were used to create the UTXO.
+      // require( confirmSig  )    ecrecover ??
+
+      //2) Make sure the proof really proves that the  'hash of the tx' exists as a leaf
+
+
+
 
 
       //use merkle proof
