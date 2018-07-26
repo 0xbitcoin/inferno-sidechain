@@ -12,7 +12,7 @@ Contract for operating and maintaining an Inferno Sidechain
 This is an Ethereum plasma-like sidechain using Merkle Proofs and Time-Delayed Withdrawls
 
 
-
+https://ethresear.ch/t/minimal-viable-plasma/426
 
 
 */
@@ -97,8 +97,19 @@ contract MiningKingInterface {
 }
 
 
-//A lava packet but for the sidechain 
-struct TXPacket
+struct BlockHeader
+{
+  uint blockNumber;
+  bytes32 stateRootHash;
+  address authority;
+
+  //uint ethBlockNumber;
+}
+
+
+//A lava packet but for the sidechain
+/*
+struct LavaPacket
 {
  address from;
  address to;
@@ -109,8 +120,54 @@ struct TXPacket
  uint256 nonce;
  bytes signature;
 }
+*/
 
 
+/*
+[blknum1, txindex1, oindex1, sig1, # Input 1
+ blknum2, txindex2, oindex2, sig2, # Input 2
+ newowner1, denom1,                # Output 1
+ newowner2, denom2,                # Output 2
+ fee]
+*/
+
+
+/*
+
+Each transaction has 2 inputs and 2 outputs, and the sum of the denominations of the outputs
+plus the fee must equal the sum of the denominations of the inputs.
+ The signatures must be signatures of all the other fields in the transaction,
+ with the private key corresponding to the owner of that particular output.
+  A deposit block has all input fields, and the fields for the second output, zeroed out.
+   To make a transaction that spends only one UTXO, a user can zero out all fields
+   for the second input.*/
+
+struct TxInput
+{
+  uint blockNumber;
+  uint txIndex;
+  uint oIndex;
+  bytes32 signature;
+}
+
+struct TxOutput
+{
+  address newOwner;
+  uint amount; //denom
+}
+
+
+struct Transaction
+{
+  TxInput input1;
+  TxInput input2;
+  TxOutput output1;
+  TxOutput output2;
+  uint fee;
+}
+
+
+//Plasma Implementation using Proof Of Work to determine block hash authority
 contract InfernoSidechain   {
 
   //mapping(address => mapping (address => uint256)) balances;
@@ -118,6 +175,7 @@ contract InfernoSidechain   {
 
   using SafeMath for uint;
 
+   uint plasmaBlockNumber = 0;
 
    address public miningKingContract;
 
@@ -126,9 +184,9 @@ contract InfernoSidechain   {
 
    address public merkleStateRootHash;
 
-   // ethBlockNumber => root hash
-   mapping(uint256 => bytes32) merkleStateBlockHash;
-   mapping(uint256 => address) merkleStateBlockAuthority;
+   // blockNumber => root hash
+   mapping(uint256 => BlockHeader) merkleStateBlock ;
+
 
    //locked tokens - only the sidechainToken type is allowed
    mapping(address => uint256) balances;
@@ -139,7 +197,7 @@ contract InfernoSidechain   {
 
 
    // 0xBTC is 0xb6ed7644c69416d67b522e20bc294a9a9b405b31;
-  constructor(address sToken, mkContract) public  {
+  constructor(address sToken, address mkContract) public  {
     sidechainToken = sToken;
     miningKingContract = mkContract;
   }
@@ -175,10 +233,9 @@ contract InfernoSidechain   {
 
        uint ethBlockNumber = block.number;
 
-       require( merkleStateBlockHashes[ethBlockNumber] = 0x0 );
 
-       merkleStateBlockHashes[ethBlockNumber] = stateBlockHash;
-       merkleStateBlockAuthority[ethBlockNumber] = msg.sender;
+
+       require( merkleStateBlock[plasmaBlockNumber] = 0x0 );
 
 
        //keep appending the block hashes onto the state root hash ..
@@ -190,13 +247,25 @@ contract InfernoSidechain   {
          merkleStateRootHash = keccak256(merkleStateRootHash , stateBlockHash);
        }
 
+
+       merkleStateBlock[plasmaBlockNumber] = BlockHeader({
+         blockNumber: plasmaBlockNumber;
+         stateRootHash: merkleStateRootHash; // the combined hash of ALL elements all together
+         authority: msg.sender;
+
+         })
+
+
+      plasmaBlockNumber+=1;
+
    }
 
 
    //able to use lava ?  approveAndCall?
 
+   //depositTokensToSidechain
    //Once they are deposited and locked, they belong to the same Eth Address but on the sidechain
-   function depositTokensToSidechain(from, tokens) public returns (bool)
+   function deposit(from, tokens) public returns (bool)
    {
      //requires approval first
      require(  ERC20Interface(sidechainToken).transferFrom( from, this, tokens )  );
@@ -238,13 +307,25 @@ contract InfernoSidechain   {
   which show that funds have been moved to the exiting owner.
 **/
 
-   function startFundsUnlock( proof, root, leaf , sigHash  ) returns (bool)
+
+//startExit(uint256 plasmaBlockNum, uint256 txindex, uint256 oindex, bytes tx, bytes proof, bytes confirmSig)
+
+  /*
+  (i) the Plasma block number and tx index in which the UTXO was created,
+  (ii) the output index, (iii) the transaction containing that UTXO,
+  (iv) a Merkle proof of the transaction, and
+  (v) a confirm signature from each of the previous owners of the
+  now-spent outputs that were used to create the UTXO.
+  */
+
+   function startExit(uint plasmaBlockNumber, uint txIndex, uint oIndex , bytes tx, bytes proof, bytes confirmSig   ) returns (bool)
    {
-     //check the lava packet
+     //  proof, root, leaf , sigHash
      //can do lots of computation but do not do too much storage as that is gas-costly !
 
+      //check confirm signature from each of the previous owners of the now-spent outputs that were used to create the UTXO.
 
-     require( verifiedEndpointTransaction[sigHash] )
+
       //use merkle proof
 
    }
@@ -254,7 +335,9 @@ contract InfernoSidechain   {
 
    You will get paid if you prove that there is a conflicting leaf in the merkleStateRootHash  - like a duplicate  lava packet etc etc
    */
-   function cancelFundsUnlock( proof, root, leaf  ) returns (bool)
+
+   //challengeExit(uint256 exitId, uint256 plasmaBlockNum, uint256 txindex, uint256 oindex, bytes tx, bytes proof, bytes confirmSig)
+   function challengeExit( uint256 exitId, uint256 plasmaBlockNum, uint256 txindex, uint256 oindex, bytes tx, bytes proof, bytes confirmSig  ) returns (bool)
    {
       //use merkle proof
 
@@ -264,7 +347,7 @@ contract InfernoSidechain   {
 
    }
 
-   function finishFundsUnlock( proof, root, leaf  ) returns (bool)
+   function finishExit(   ) returns (bool)
    {
       //use merkle proof
 
