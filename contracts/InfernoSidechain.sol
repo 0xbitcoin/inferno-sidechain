@@ -106,7 +106,7 @@ contract InfernoSidechain   {
 
     uint lastBlockMiningEpoch;
 
-   //bytes32 currentRootHash;
+   uint deepestDepth;
 
    // rootHash => Block
    mapping(bytes32 => Block) public blocks;
@@ -115,6 +115,8 @@ contract InfernoSidechain   {
    {
     bytes32 root;
     bytes32 leaf; //root of previous block, also the first element of the hash to makes up Root
+
+    uint depth; //the number of block parents
     uint epochCount; //for sequentiality
    }
 
@@ -126,6 +128,10 @@ contract InfernoSidechain   {
    // 0xBTC is 0xb6ed7644c69416d67b522e20bc294a9a9b405b31;
   constructor(address mContract) public  {
     miningContract = mContract;
+
+    //add genesis block
+    lastBlockMiningEpoch = getMiningEpoch();
+    blocks[0x0] = Block(0x0,0x0,0,lastBlockMiningEpoch);
   }
 
 
@@ -150,7 +156,7 @@ contract InfernoSidechain   {
   }
 
   /*
-  In this case, the leaf we start with is the currentRootHash
+  In this case, the leaf is the root of the previous block
 
   */
   function addNewBlock(
@@ -185,10 +191,45 @@ contract InfernoSidechain   {
       //currentRootHash = root; //update to the new overall chain state
       lastBlockMiningEpoch = getMiningEpoch();
 
-      blocks[root] = Block(root,leaf,lastBlockMiningEpoch);
+
+
+      bytes32 nextParentRoot = leaf;
+
+      Block memory parent = blocks[nextParentRoot];
+
+
+      uint thisBlockDepth = parent.depth.add(1);
+
+      if( thisBlockDepth > deepestDepth )
+      {
+        deepestDepth = thisBlockDepth;
+      }
+
+
+      blocks[root] = Block(root,leaf,thisBlockDepth,lastBlockMiningEpoch);
+
 
       return true;
     }
 
+
+
+    function blockHasDeepestDepth(bytes32 root) view returns (bool)
+    {
+      Block memory b = blocks[root];
+      return b.depth == deepestDepth;
+    }
+
+
+    //import tokens
+
+
+    //export tokens
+    /*
+    User must provide a root for a head-block of a branch which has a depth
+    equal to the 'deepestDepth'  global.   We compute its depth to make sure.
+    Then,   Require a proof that there is a withdrawl tx in a block
+    under that heads sidechain branch which has at least 100 confirms.
+    */
 
 }
