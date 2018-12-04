@@ -8,6 +8,13 @@ Contract for operating and maintaining an Inferno Sidechain
 
 Only stores a simple merkle tree root hash on the Ethereum Mainnet
 
+
+______
+
+The mapping 'blocks' is a collection of blocks which all reference some other previous block.
+Sidechain Nodes must determine which of these blocks has the most valid blocks sequentially behind it (ending at the genesis block, and the node must have all TX data for each block -- synced)
+
+
 */
 
 
@@ -98,7 +105,18 @@ contract InfernoSidechain   {
     using SafeMath for uint;
 
     uint lastBlockMiningEpoch;
-    bytes32 currentRootHash;
+
+   //bytes32 currentRootHash;
+
+   // rootHash => Block
+   mapping(bytes32 => Block) public blocks;
+
+   struct Block
+   {
+    bytes32 root;
+    bytes32 leaf; //root of previous block, also the first element of the hash to makes up Root
+    uint epochCount; //for sequentiality
+   }
 
 
     address public miningContract;
@@ -140,11 +158,11 @@ contract InfernoSidechain   {
       bytes32 root,
       bytes32 leaf
     )
-      public 
+      public
       returns (bool)
     {
       require(msg.sender == getMiningAuthority());
-      require(leaf == currentRootHash); //must build off of the previous block
+      require(blocks[leaf].root == leaf || leaf == 0x0); //must build off of an existing block OR the genesis block
       require(lastBlockMiningEpoch <  getMiningEpoch()); //one new sidechain block per Mining Round
 
 
@@ -160,12 +178,16 @@ contract InfernoSidechain   {
         }
       }
 
+      require(computedHash == root);
 
-      currentRootHash = root; //update to the new overall chain state
+
+
+      //currentRootHash = root; //update to the new overall chain state
       lastBlockMiningEpoch = getMiningEpoch();
 
+      blocks[root] = Block(root,leaf,lastBlockMiningEpoch);
 
-      return computedHash == root;
+      return true;
     }
 
 

@@ -25,14 +25,14 @@
       "type": "function"
     }
   ],
-  "bytecode": "0x61022b610030600b82828239805160001a6073146000811461002057610022565bfe5b5030600052607381538281f3007300000000000000000000000000000000000000003014608060405260043610610058576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806319045a251461005d575b600080fd5b6100c56004803603810190808035600019169060200190929190803590602001908201803590602001908080601f0160208091040260200160405190810160405280939291908181526020018383808284378201915050505050509192919290505050610107565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6000806000806041855114151561012157600093506101f6565b6020850151925060408501519150606085015160001a9050601b8160ff16101561014c57601b810190505b601b8160ff16141580156101645750601c8160ff1614155b1561017257600093506101f6565b600186828585604051600081526020016040526040518085600019166000191681526020018460ff1660ff1681526020018360001916600019168152602001826000191660001916815260200194505050505060206040516020810390808403906000865af11580156101e9573d6000803e3d6000fd5b5050506020604051035193505b505050929150505600a165627a7a72305820341512be7f52da3cc5b85f1759c4200b0a6f539f8e8a5df4b4b14334c931f5dc0029",
-  "deployedBytecode": "0x7300000000000000000000000000000000000000003014608060405260043610610058576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806319045a251461005d575b600080fd5b6100c56004803603810190808035600019169060200190929190803590602001908201803590602001908080601f0160208091040260200160405190810160405280939291908181526020018383808284378201915050505050509192919290505050610107565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6000806000806041855114151561012157600093506101f6565b6020850151925060408501519150606085015160001a9050601b8160ff16101561014c57601b810190505b601b8160ff16141580156101645750601c8160ff1614155b1561017257600093506101f6565b600186828585604051600081526020016040526040518085600019166000191681526020018460ff1660ff1681526020018360001916600019168152602001826000191660001916815260200194505050505060206040516020810390808403906000865af11580156101e9573d6000803e3d6000fd5b5050506020604051035193505b505050929150505600a165627a7a72305820341512be7f52da3cc5b85f1759c4200b0a6f539f8e8a5df4b4b14334c931f5dc0029",
+  "bytecode": "0x61022b610030600b82828239805160001a6073146000811461002057610022565bfe5b5030600052607381538281f3007300000000000000000000000000000000000000003014608060405260043610610058576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806319045a251461005d575b600080fd5b6100c56004803603810190808035600019169060200190929190803590602001908201803590602001908080601f0160208091040260200160405190810160405280939291908181526020018383808284378201915050505050509192919290505050610107565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6000806000806041855114151561012157600093506101f6565b6020850151925060408501519150606085015160001a9050601b8160ff16101561014c57601b810190505b601b8160ff16141580156101645750601c8160ff1614155b1561017257600093506101f6565b600186828585604051600081526020016040526040518085600019166000191681526020018460ff1660ff1681526020018360001916600019168152602001826000191660001916815260200194505050505060206040516020810390808403906000865af11580156101e9573d6000803e3d6000fd5b5050506020604051035193505b505050929150505600a165627a7a72305820853b5c01dff21fb576e7453b3c9b36a5cce0c022689d5390feb8decc9c2d383e0029",
+  "deployedBytecode": "0x7300000000000000000000000000000000000000003014608060405260043610610058576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806319045a251461005d575b600080fd5b6100c56004803603810190808035600019169060200190929190803590602001908201803590602001908080601f0160208091040260200160405190810160405280939291908181526020018383808284378201915050505050509192919290505050610107565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6000806000806041855114151561012157600093506101f6565b6020850151925060408501519150606085015160001a9050601b8160ff16101561014c57601b810190505b601b8160ff16141580156101645750601c8160ff1614155b1561017257600093506101f6565b600186828585604051600081526020016040526040518085600019166000191681526020018460ff1660ff1681526020018360001916600019168152602001826000191660001916815260200194505050505060206040516020810390808403906000865af11580156101e9573d6000803e3d6000fd5b5050506020604051035193505b505050929150505600a165627a7a72305820853b5c01dff21fb576e7453b3c9b36a5cce0c022689d5390feb8decc9c2d383e0029",
   "sourceMap": "26:994:0:-;;132:2:-1;166:7;155:9;146:7;137:37;252:7;246:14;243:1;238:23;232:4;229:33;270:1;265:20;;;;222:63;;265:20;274:9;222:63;;298:9;295:1;288:20;328:4;319:7;311:22;352:7;343;336:24",
   "deployedSourceMap": "26:994:0:-;;;;;;;;;;;;;;;;;;;;;;;;;;;324:693;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;387:7;402:9;417;432:7;497:2;483:3;:10;:16;;479:56;;;525:1;509:19;;;;479:56;630:2;625:3;621:12;615:19;610:24;;661:2;656:3;652:12;646:19;641:24;;700:2;695:3;691:12;685:19;682:1;677:28;672:33;;812:2;808:1;:6;;;804:34;;;829:2;824:7;;;;804:34;912:2;907:1;:7;;;;:18;;;;;923:2;918:1;:7;;;;907:18;903:110;;;951:1;935:19;;;;903:110;982:24;992:4;998:1;1001;1004;982:24;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;982:24:0;;;;;;;;975:31;;324:693;;;;;;;;:::o",
   "source": "pragma solidity ^0.4.18;\n\nlibrary ECRecovery {\n\n  /**\n   * @dev Recover signer address from a message by using their signature\n   * @param hash bytes32 message, the hash is the signed message. What is recovered is the signer address.\n   * @param sig bytes signature, the signature is generated using web3.eth.sign()\n   */\n  function recover(bytes32 hash, bytes sig) public pure returns (address) {\n    bytes32 r;\n    bytes32 s;\n    uint8 v;\n\n    //Check the signature length\n    if (sig.length != 65) {\n      return (address(0));\n    }\n\n    // Divide the signature in r, s and v variables\n    assembly {\n      r := mload(add(sig, 32))\n      s := mload(add(sig, 64))\n      v := byte(0, mload(add(sig, 96)))\n    }\n\n    // Version of signature should be 27 or 28, but 0 and 1 are also possible versions\n    if (v < 27) {\n      v += 27;\n    }\n\n    // If the version is correct return the signer address\n    if (v != 27 && v != 28) {\n      return (address(0));\n    } else {\n      return ecrecover(hash, v, r, s);\n    }\n  }\n\n}\n",
-  "sourcePath": "/home/andy/dev/inferno-sidechain/contracts/ECRecovery.sol",
+  "sourcePath": "/home/lubuntu/dev/inferno-sidechain/contracts/ECRecovery.sol",
   "ast": {
-    "absolutePath": "/home/andy/dev/inferno-sidechain/contracts/ECRecovery.sol",
+    "absolutePath": "/home/lubuntu/dev/inferno-sidechain/contracts/ECRecovery.sol",
     "exportedSymbols": {
       "ECRecovery": [
         64
@@ -337,11 +337,11 @@
                 {
                   "externalReferences": [
                     {
-                      "r": {
-                        "declaration": 11,
+                      "sig": {
+                        "declaration": 5,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "610:1:0",
+                        "src": "695:3:0",
                         "valueSize": 1
                       }
                     },
@@ -359,7 +359,7 @@
                         "declaration": 5,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "625:3:0",
+                        "src": "656:3:0",
                         "valueSize": 1
                       }
                     },
@@ -377,16 +377,16 @@
                         "declaration": 5,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "656:3:0",
+                        "src": "625:3:0",
                         "valueSize": 1
                       }
                     },
                     {
-                      "sig": {
-                        "declaration": 5,
+                      "r": {
+                        "declaration": 11,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "695:3:0",
+                        "src": "610:1:0",
                         "valueSize": 1
                       }
                     }
@@ -715,7 +715,7 @@
                             "name": "ecrecover",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 169,
+                            "referencedDeclaration": 696,
                             "src": "982:9:0",
                             "typeDescriptions": {
                               "typeIdentifier": "t_function_ecrecover_pure$_t_bytes32_$_t_uint8_$_t_bytes32_$_t_bytes32_$returns$_t_address_$",
@@ -950,7 +950,7 @@
     "src": "0:1021:0"
   },
   "legacyAST": {
-    "absolutePath": "/home/andy/dev/inferno-sidechain/contracts/ECRecovery.sol",
+    "absolutePath": "/home/lubuntu/dev/inferno-sidechain/contracts/ECRecovery.sol",
     "exportedSymbols": {
       "ECRecovery": [
         64
@@ -1255,11 +1255,11 @@
                 {
                   "externalReferences": [
                     {
-                      "r": {
-                        "declaration": 11,
+                      "sig": {
+                        "declaration": 5,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "610:1:0",
+                        "src": "695:3:0",
                         "valueSize": 1
                       }
                     },
@@ -1277,7 +1277,7 @@
                         "declaration": 5,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "625:3:0",
+                        "src": "656:3:0",
                         "valueSize": 1
                       }
                     },
@@ -1295,16 +1295,16 @@
                         "declaration": 5,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "656:3:0",
+                        "src": "625:3:0",
                         "valueSize": 1
                       }
                     },
                     {
-                      "sig": {
-                        "declaration": 5,
+                      "r": {
+                        "declaration": 11,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "695:3:0",
+                        "src": "610:1:0",
                         "valueSize": 1
                       }
                     }
@@ -1633,7 +1633,7 @@
                             "name": "ecrecover",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 169,
+                            "referencedDeclaration": 696,
                             "src": "982:9:0",
                             "typeDescriptions": {
                               "typeIdentifier": "t_function_ecrecover_pure$_t_bytes32_$_t_uint8_$_t_bytes32_$_t_bytes32_$returns$_t_address_$",
@@ -1873,5 +1873,5 @@
   },
   "networks": {},
   "schemaVersion": "2.0.1",
-  "updatedAt": "2018-12-03T23:46:19.179Z"
+  "updatedAt": "2018-12-04T16:06:17.258Z"
 }
