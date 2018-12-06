@@ -8,6 +8,13 @@ Contract for operating and maintaining an Inferno Sidechain
 
 Only stores a simple merkle tree root hash on the Ethereum Mainnet
 
+
+______
+
+The mapping 'blocks' is a collection of blocks which all reference some other previous block.
+Sidechain Nodes must determine which of these blocks has the most valid blocks sequentially behind it (ending at the genesis block, and the node must have all TX data for each block -- synced)
+
+
 */
 
 
@@ -98,7 +105,20 @@ contract InfernoSidechain   {
     using SafeMath for uint;
 
     uint lastBlockMiningEpoch;
-    bytes32 currentRootHash;
+
+   uint deepestDepth;
+
+   // rootHash => Block
+   mapping(bytes32 => Block) public blocks;
+
+   struct Block
+   {
+    bytes32 root;
+    bytes32 leaf; //root of previous block, also the first element of the hash to makes up Root
+
+    uint depth; //the number of block parents
+    uint epochCount; //for sequentiality
+   }
 
 
     address public miningContract;
@@ -108,6 +128,10 @@ contract InfernoSidechain   {
    // 0xBTC is 0xb6ed7644c69416d67b522e20bc294a9a9b405b31;
   constructor(address mContract) public  {
     miningContract = mContract;
+
+    //add genesis block
+    lastBlockMiningEpoch = getMiningEpoch();
+    blocks[0x0] = Block(0x0,0x0,0,lastBlockMiningEpoch);
   }
 
 
@@ -132,7 +156,7 @@ contract InfernoSidechain   {
   }
 
   /*
-  In this case, the leaf we start with is the currentRootHash
+  In this case, the leaf is the root of the previous block
 
   */
   function addNewBlock(
@@ -144,7 +168,7 @@ contract InfernoSidechain   {
       returns (bool)
     {
       require(msg.sender == getMiningAuthority());
-      require(leaf == currentRootHash); //must build off of the previous block
+      require(blocks[leaf].root == leaf || leaf == 0x0); //must build off of an existing block OR the genesis block
       require(lastBlockMiningEpoch <  getMiningEpoch()); //one new sidechain block per Mining Round
 
 
@@ -160,13 +184,52 @@ contract InfernoSidechain   {
         }
       }
 
+      require(computedHash == root);
 
-      currentRootHash = root; //update to the new overall chain state
+
+
+      //currentRootHash = root; //update to the new overall chain state
       lastBlockMiningEpoch = getMiningEpoch();
 
 
-      return computedHash == root;
+
+      bytes32 nextParentRoot = leaf;
+
+      Block memory parent = blocks[nextParentRoot];
+
+
+      uint thisBlockDepth = parent.depth.add(1);
+
+      if( thisBlockDepth > deepestDepth )
+      {
+        deepestDepth = thisBlockDepth;
+      }
+
+
+      blocks[root] = Block(root,leaf,thisBlockDepth,lastBlockMiningEpoch);
+
+
+      return true;
     }
 
+
+
+    function blockHasDeepestDepth(bytes32 root) view returns (bool)
+    {
+      Block memory b = blocks[root];
+      return b.depth == deepestDepth;
+    }
+
+
+    //import tokens
+
+
+    //export tokens
+    /*
+    User must provide a root for a head-block of a branch which has a depth
+    equal to the 'deepestDepth'  global.   We compute its depth to make sure.
+    Then,   Require a proof that there is a withdrawl tx in a block
+    under that heads sidechain branch which has at least 100 confirms.
+    */
 
 }
