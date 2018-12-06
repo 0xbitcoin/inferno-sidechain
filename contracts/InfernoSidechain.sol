@@ -358,13 +358,14 @@ contract InfernoSidechain   {
       bytes32 root,
       bytes32 leaf, //exit transaction
       bytes32[] proof, //all other tx in this block (their hashes)
-
+      
+      address from,
       address token,
       uint tokens,
       uint nonce // ?
     )
     {
-      address from = msg.sender;
+      
 
       require(validatedExitTransactions[leaf] != true);//must not have exported this leaf before
 
