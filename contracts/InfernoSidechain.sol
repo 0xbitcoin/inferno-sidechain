@@ -106,10 +106,15 @@ contract InfernoSidechain   {
 
     uint lastBlockMiningEpoch;
 
-   uint deepestDepth;
+    uint deepestDepth;
+
+    uint REQUIRED_CONFIRMATION_BLOCKS = 1024;
 
    // rootHash => Block
    mapping(bytes32 => Block) public blocks;
+
+   //utxo hash -> import
+   mapping(bytes32 => GenesisImport) public imports;
 
    struct Block
    {
@@ -118,6 +123,14 @@ contract InfernoSidechain   {
 
     uint depth; //the number of block parents
     uint epochCount; //for sequentiality
+   }
+
+   struct GenesisImport
+   {
+     bytes32 id; //utxo id
+     uint sender;
+     address token;
+     uint tokens;
    }
 
 
@@ -155,14 +168,32 @@ contract InfernoSidechain   {
     return EIP918Interface(miningContract).epochCount();
   }
 
+
+
+  /*
+  Sidechain TX Formats   rev 1
+  //fee always in 0xBTC
+
+  import(from, token, tokens,fee)
+  transfer(from,to,token,tokens,fee)
+  export(from, token, tokens , fee)
+
+  PROBLEM: A contentious 51% attacker can make new 'exit' tx with no parents/history and steal tokens
+  ...perhaps use UTXO and prove them on each new block added ? ...prove them on exit ?
+
+  */
+
+
   /*
   In this case, the leaf is the root of the previous block
 
   */
   function addNewBlock(
-      bytes32[] proof,
+
       bytes32 root,
-      bytes32 leaf
+      bytes32 leaf,
+      bytes32[] proof
+
     )
       public
       returns (bool)
@@ -222,14 +253,48 @@ contract InfernoSidechain   {
 
 
     //import tokens
+    // this makes a new UTXO hash .... saved in contract
+    function importTokensToSidechain(address token, uint tokens, bytes32  input)
+    {
+      uint nextImportedTokenIndex = 0;//gobal and gets incremented ... (draft)
 
+      bytes32 id = SHA3(msg.sender, token, tokens, block.number, input);
+
+      require( imports[id].id == 0); //must not exist
+
+      imports[id] = GenesisImport(id, msg.sender, token, tokens);
+
+
+    }
+
+
+
+    //do UTXO proofing every block submission... Actually i think this is impossible
 
     //export tokens
     /*
     User must provide a root for a head-block of a branch which has a depth
     equal to the 'deepestDepth'  global.   We compute its depth to make sure.
-    Then,   Require a proof that there is a withdrawl tx in a block
-    under that heads sidechain branch which has at least 100 confirms.
+    Then,   Require a UTXO proof that there is a withdrawl tx in a block
+    under that heads sidechain branch which has at least REQUIRED_CONFIRMATION_BLOCKS confirms.
+    the UTXO must begin at the import UTXO hash.
     */
+    //still  a WIP
+    /*
+    utxoProof - proves that there is a lineage of ECDSA signatures from the sidechain export UTXO to the genesis import UXTO
+    ????merkleProof - proves that there are X confirmations on the sidechain export UXTO being mined and that its branch is the longest branch
+    */
+
+    function exportTokensFromSidechain(
+      uint amount,
+      bytes32 rootHash,
+      bytes32 merkleProof
+    )
+    {
+      address from = msg.sender;
+
+
+    }
+
 
 }
