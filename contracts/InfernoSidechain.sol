@@ -203,17 +203,7 @@ contract InfernoSidechain   {
       require(lastBlockMiningEpoch <  getMiningEpoch()); //one new sidechain block per Mining Round
 
 
-      bytes32 computedHash = leaf;
-
-      for (uint256 i = 0; i < proof.length; i++) {
-        bytes32 proofElement = proof[i];
-
-        if (computedHash < proofElement) {
-          computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
-        } else {
-          computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
-        }
-      }
+      bytes32 computedHash =  _getMerkleRoot(leaf,proof);
 
       require(computedHash == root);
 
@@ -245,6 +235,31 @@ contract InfernoSidechain   {
 
 
 
+
+    function _getMerkleRoot (
+      bytes32 leaf,
+      bytes32[] proof
+     ) internal pure returns (bytes32)
+     {
+
+       bytes32 computedHash = leaf;
+
+       for (uint256 i = 0; i < proof.length; i++) {
+         bytes32 proofElement = proof[i];
+
+         if (computedHash < proofElement) {
+           computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
+         } else {
+           computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
+         }
+       }
+
+       return computedHash;
+
+     }
+
+
+
     function blockHasDeepestDepth(bytes32 root) view returns (bool)
     {
       Block memory b = blocks[root];
@@ -254,17 +269,17 @@ contract InfernoSidechain   {
 
     //import tokens
     // this makes a new UTXO hash .... saved in contract
-    function importTokensToSidechain(address token, uint tokens, bytes32  input)
+    function importTokensToSidechain(address token, uint tokens, bytes32  input) public returns (bool)
     {
       uint nextImportedTokenIndex = 0;//gobal and gets incremented ... (draft)
 
-      bytes32 id = SHA3(msg.sender, token, tokens, block.number, input);
+      bytes32 id = SHA3(msg.sender, token, tokens, this, block.number, input);
 
       require( imports[id].id == 0); //must not exist
 
       imports[id] = GenesisImport(id, msg.sender, token, tokens);
 
-
+      return true;
     }
 
 
@@ -286,12 +301,35 @@ contract InfernoSidechain   {
     */
 
     function exportTokensFromSidechain(
-      uint amount,
-      bytes32 rootHash,
-      bytes32 merkleProof
+      bytes32 branchHeadRoot,
+      bytes32 branchProof, //prove that the 'root' is part of the 'branch head root'
+
+      bytes32 root,
+      bytes32 leaf, //exit transaction
+      bytes32[] proof,
+
+      address token,
+      uint tokens
     )
     {
       address from = msg.sender;
+
+      //prove that the 'root' is part of the 'branch head root'
+      bytes32 computedBranchProofHash =  _getMerkleRoot(root,branchProof);
+      require(computedBranchProofHash == branchHeadRoot);
+
+
+      require(blocks[branchHeadRoot].depth == deepestDepth);
+      require(blocks[root].depth < deepestDepth.sub(100)); // at least 100 confirms
+
+
+      //prove that the transaction is part of the root block
+      bytes32 computedHash =  _getMerkleRoot(leaf,proof);
+      require(computedHash == root);
+
+      bytes32 exitTransactionHash = keccak256('exit',this,from,token,tokens);//compute this
+      require( leaf == exitTransactionHash);
+
 
 
     }
