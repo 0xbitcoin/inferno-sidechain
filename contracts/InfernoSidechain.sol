@@ -313,10 +313,10 @@ contract InfernoSidechain   {
 
     //import tokens
     // This makes a new 'genesis import' hash .... saved in contract.
-    // Similar to a coinbase tx for the sidechain -- new tokens enter supply 
+    // Similar to a coinbase tx for the sidechain -- new tokens enter supply
     function importTokensToSidechain(address from,address token, uint tokens, bytes32  input) public returns (bool)
     {
- 
+
       bytes32 id = keccak256(abi.encodePacked( msg.sender, token, tokens, this, block.number, input ));
 
       require( imports[id].id == 0); //must not exist
@@ -358,29 +358,25 @@ contract InfernoSidechain   {
       bytes32 root,
       bytes32 leaf, //exit transaction
       bytes32[] proof, //all other tx in this block (their hashes)
-      
+
       address from,
       address token,
       uint tokens,
       uint nonce // ?
     )
     {
-      
 
-      require(validatedExitTransactions[leaf] != true);//must not have exported this leaf before
+      //must not have exported this leaf before
+      require(validatedExitTransactions[leaf] != true);
 
-        require(_validateBlocksDepth(branchHeadRoot , root   ));
+      require(_validateQualityConsensus(branchHeadRoot , root   ));
 
-      //prove that the 'root' is part of the 'branch head root'
-      bytes32 computedBranchProofHash =  _getMerkleRoot(root,branchProof);
-      require(computedBranchProofHash == branchHeadRoot);
-
+      //prove that the 'root' is part of the 'branch head root' (no way to compute branchProof to fit)
+      require(_getMerkleRoot(root,branchProof) == branchHeadRoot);
 
 
-      //prove that the transaction is part of the root block
-      bytes32 computedHash =  _getMerkleRoot(leaf,proof);
-      require(computedHash == root);
- 
+      //prove that the transaction is part of the root block (no way to compute proof to fit)
+      require(_getMerkleRoot(leaf,proof) == root);
 
       bytes32 exitTransactionHash = keccak256(abi.encodePacked('exit',this,from,token,tokens,nonce));//this is the 'hash' of a sidechain TX
       require( leaf == exitTransactionHash);
@@ -393,8 +389,8 @@ contract InfernoSidechain   {
 
     //requires that the head block ultimately built on top of the tail block
     //requires that there is REQUIRED_CONFIRMATION_BLOCKS of blocks in between
-    //requires that there was high quality consensus (>90%) over that confirmation segment 
-    function _validateBlocksDepth(bytes32 headRoot,bytes32 tailRoot) public returns (bool)
+    //requires that there was high quality consensus (>90%) over that confirmation segment
+    function _validateQualityConsensus(bytes32 headRoot,bytes32 tailRoot) public returns (bool)
     {
 
       //require that the segment is exactly REQUIRED_CONFIRMATION_BLOCKS blocks long
