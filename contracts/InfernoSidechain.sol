@@ -148,7 +148,10 @@ contract InfernoSidechain   {
 
     uint deepestDepth;
 
-    uint REQUIRED_CONFIRMATION_BLOCKS = 1024;
+    uint totalBlockCount;
+
+    uint REQUIRED_CONFIRMATION_BLOCKS = 256;
+
 
    // rootHash => Block
    mapping(bytes32 => Block) public blocks;
@@ -166,13 +169,14 @@ contract InfernoSidechain   {
     bytes32 leaf; //root of previous block, also the first element of the hash to makes up Root
 
     uint depth; //the number of block parents
-    uint epochCount; //for sequentiality
+    uint epochCount; //for sequentiality  ... necessary ?
+    uint blockCount;
    }
 
    struct GenesisImport
    {
      bytes32 id; //utxo id
-     uint sender;
+     address sender;
      address token;
      uint tokens;
    }
@@ -188,7 +192,9 @@ contract InfernoSidechain   {
 
     //add genesis block
     lastBlockMiningEpoch = getMiningEpoch();
-    blocks[0x0] = Block(0x0,0x0,0,lastBlockMiningEpoch);
+    blocks[0x0] = Block(0x0,0x0,0,lastBlockMiningEpoch,totalBlockCount);
+
+    totalBlockCount = totalBlockCount.add(1);
   }
 
 
@@ -265,14 +271,15 @@ contract InfernoSidechain   {
 
       uint thisBlockDepth = parent.depth.add(1);
 
-      if( thisBlockDepth > deepestDepth )
-      {
-        deepestDepth = thisBlockDepth;
-      }
+      //if( thisBlockDepth > deepestDepth )
+    //  {
+    //    deepestDepth = thisBlockDepth;
+      //}
 
 
-      blocks[root] = Block(root,leaf,thisBlockDepth,lastBlockMiningEpoch);
+      blocks[root] = Block(root,leaf,thisBlockDepth,lastBlockMiningEpoch,totalBlockCount);
 
+      totalBlockCount = totalBlockCount.add(1);
 
       return true;
     }
@@ -304,24 +311,24 @@ contract InfernoSidechain   {
 
 
 
-    function blockHasDeepestDepth(bytes32 root) view returns (bool)
-    {
-      return blocks[root].depth == deepestDepth;
-    }
-
 
     //import tokens
     // This makes a new 'genesis import' hash .... saved in contract.
     // Similar to a genesis block for the sidechain
-    function importTokensToSidechain(address token, uint tokens, bytes32  input) public returns (bool)
+    function importTokensToSidechain(address from,address token, uint tokens, bytes32  input) public returns (bool)
     {
+
       uint nextImportedTokenIndex = 0;//gobal and gets incremented ... (draft)
 
-      bytes32 id = keccak256(msg.sender, token, tokens, this, block.number, input);
+      bytes32 id = keccak256(abi.encodePacked( msg.sender, token, tokens, this, block.number, input ));
 
       require( imports[id].id == 0); //must not exist
 
+
       imports[id] = GenesisImport(id, msg.sender, token, tokens);
+
+      require(  ERC20Interface(token).transferFrom(from, this, tokens ) );
+
 
       return true;
     }
@@ -344,26 +351,74 @@ contract InfernoSidechain   {
 
 
 
-    // loop through all the ECDSA signatures ???
-    //maybe only allow the tokens to stay the same quantity in a 'pouch' and not split off ?
-    function validateExitTransaction(
-
-        bytes32 leaf, //exit transaction
-
-
-        bytes32[] signature_list
-
-       ) public returns (bool)
-       {
-
-         // require ...  //ECRecovery  chain ,,,?
-
-         validatedExitTransactions[leaf] = true;
-         return true;
-       }
-
 
     //export tokens
+
+    function exportTokensFromSidechain(
+      bytes32 branchHeadRoot,
+      bytes32[] branchProof, //prove that the 'root' is part of the 'branch head root', just all the roots of the blocks between
+
+      bytes32 root,
+      bytes32 leaf, //exit transaction
+      bytes32[] proof, //all other tx in this block (their hashes)
+
+      address token,
+      uint tokens,
+      uint nonce // ?
+    )
+    {
+      address from = msg.sender;
+
+      require(validatedExitTransactions[leaf] != true);//must not have exported this leaf before
+
+        require(_validateBlocksDepth(branchHeadRoot , root   ));
+
+      //prove that the 'root' is part of the 'branch head root'
+      bytes32 computedBranchProofHash =  _getMerkleRoot(root,branchProof);
+      require(computedBranchProofHash == branchHeadRoot);
+
+
+
+      //prove that the transaction is part of the root block
+      bytes32 computedHash =  _getMerkleRoot(leaf,proof);
+      require(computedHash == root);
+
+      uint sidechainBlockNumber = blocks[root].depth;
+
+      bytes32 exitTransactionHash = keccak256(abi.encodePacked('exit',this,from,token,tokens,nonce));//this is the 'hash' of a sidechain TX
+      require( leaf == exitTransactionHash);
+
+
+      validatedExitTransactions[leaf] = true;
+      require(  ERC20Interface(token).transfer(from, tokens ));
+
+    }
+
+    //requires that the head block ultimately built on top of the tail block
+    //requires that there is REQUIRED_CONFIRMATION_BLOCKS of blocks in between
+    //requires that there was high quality consensus (>90%) over that confirmation segment 
+    function _validateBlocksDepth(bytes32 headRoot,bytes32 tailRoot) public returns (bool)
+    {
+
+      //require that the segment is exactly REQUIRED_CONFIRMATION_BLOCKS blocks long
+      require(blocks[tailRoot].depth == blocks[headRoot].depth.sub(REQUIRED_CONFIRMATION_BLOCKS)); // at least 100 confirms
+      require(blocks[tailRoot].depth > 0);
+
+
+      //make sure the branch segment of the confirms (tail to head) had better than 90% consensus
+      uint blockCountDifference = blocks[headRoot].blockCount.sub( blocks[tailRoot].blockCount );
+      uint blockDepthDifference = blocks[headRoot].depth.sub( blocks[tailRoot].depth );
+
+      uint blockCountDifferenceLimit = blockDepthDifference.mul(110).div(100);
+
+      require( blockCountDifference < blockCountDifferenceLimit );
+
+      return true;
+
+    }
+
+
+
     /*
     User must provide a root for a head-block of a branch which has a depth
     equal to the 'deepestDepth'  global.   We compute its depth to make sure.
@@ -378,44 +433,7 @@ contract InfernoSidechain   {
    //A) What if we had a 'checkpoint hash' that represented everyones balance !
     // Then a whistleblower can show that a TX would make someones balance go negative
 
-    function exportTokensFromSidechain(
-      bytes32 branchHeadRoot,
-      bytes32[] branchProof, //prove that the 'root' is part of the 'branch head root', just all the roots of the blocks between
 
-      bytes32 root,
-      bytes32 leaf, //exit transaction
-      bytes32[] proof, //all other tx in this block (their hashes)
-
-      address token,
-      uint tokens
-    )
-    {
-      address from = msg.sender;
-
-
-      require(validatedExitTransactions[leaf] == true);
-
-      //prove that the 'root' is part of the 'branch head root'
-      bytes32 computedBranchProofHash =  _getMerkleRoot(root,branchProof);
-      require(computedBranchProofHash == branchHeadRoot);
-
-
-      require( blockHasDeepestDepth(branchHeadRoot) );
-      require(blocks[root].depth <= deepestDepth.sub(REQUIRED_CONFIRMATION_BLOCKS)); // at least 100 confirms
-      require(blocks[root].depth > 0);
-
-      //prove that the transaction is part of the root block
-      bytes32 computedHash =  _getMerkleRoot(leaf,proof);
-      require(computedHash == root);
-
-      uint sidechainBlockNumber = blocks[root].depth;
-
-      bytes32 exitTransactionHash = keccak256('exit',this,from,token,tokens,sidechainBlockNumber);//this is the 'hash' of a sidechain TX
-      require( leaf == exitTransactionHash);
-
-
-
-    }
 
 
 }
