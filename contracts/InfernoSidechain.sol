@@ -316,9 +316,7 @@ contract InfernoSidechain   {
     // Similar to a coinbase tx for the sidechain -- new tokens enter supply 
     function importTokensToSidechain(address from,address token, uint tokens, bytes32  input) public returns (bool)
     {
-
-      uint nextImportedTokenIndex = 0;//gobal and gets incremented ... (draft)
-
+ 
       bytes32 id = keccak256(abi.encodePacked( msg.sender, token, tokens, this, block.number, input ));
 
       require( imports[id].id == 0); //must not exist
