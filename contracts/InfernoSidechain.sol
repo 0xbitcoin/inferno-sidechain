@@ -262,18 +262,18 @@ contract InfernoSidechain   {
 
     function blockHasDeepestDepth(bytes32 root) view returns (bool)
     {
-      Block memory b = blocks[root];
-      return b.depth == deepestDepth;
+      return blocks[root].depth == deepestDepth;
     }
 
 
     //import tokens
-    // this makes a new UTXO hash .... saved in contract
+    // This makes a new 'genesis import' hash .... saved in contract.
+    // Similar to a genesis block for the sidechain
     function importTokensToSidechain(address token, uint tokens, bytes32  input) public returns (bool)
     {
       uint nextImportedTokenIndex = 0;//gobal and gets incremented ... (draft)
 
-      bytes32 id = SHA3(msg.sender, token, tokens, this, block.number, input);
+      bytes32 id = keccak256(msg.sender, token, tokens, this, block.number, input);
 
       require( imports[id].id == 0); //must not exist
 
@@ -284,7 +284,16 @@ contract InfernoSidechain   {
 
 
 
+    /*
+    Either ..
+      1) prevent a block from being added which has an invalid TX
+      2) catch an invalid tx with a proof
+
+    */
+
     //do UTXO proofing every block submission... Actually i think this is impossible
+    //should we add checkpointing ??  Let people exit if compromised?
+    //
 
     //export tokens
     /*
@@ -295,18 +304,19 @@ contract InfernoSidechain   {
     the UTXO must begin at the import UTXO hash.
     */
     //still  a WIP
-    /*
-    utxoProof - proves that there is a lineage of ECDSA signatures from the sidechain export UTXO to the genesis import UXTO
-    ????merkleProof - proves that there are X confirmations on the sidechain export UXTO being mined and that its branch is the longest branch
-    */
+
+    //1) How do we ensure that the exit tx does not make the users sidechain balance go to 0 ?
+
+   //A) What if we had a 'checkpoint hash' that represented everyones balance !
+    // Then a whistleblower can show that a TX would make someones balance go negative
 
     function exportTokensFromSidechain(
       bytes32 branchHeadRoot,
-      bytes32 branchProof, //prove that the 'root' is part of the 'branch head root'
+      bytes32[] branchProof, //prove that the 'root' is part of the 'branch head root', just all the roots of the blocks between
 
       bytes32 root,
       bytes32 leaf, //exit transaction
-      bytes32[] proof,
+      bytes32[] proof, //all other tx in this block (their hashes)
 
       address token,
       uint tokens
@@ -319,15 +329,17 @@ contract InfernoSidechain   {
       require(computedBranchProofHash == branchHeadRoot);
 
 
-      require(blocks[branchHeadRoot].depth == deepestDepth);
-      require(blocks[root].depth < deepestDepth.sub(100)); // at least 100 confirms
-
+      require( blockHasDeepestDepth(branchHeadRoot) );
+      require(blocks[root].depth <= deepestDepth.sub(REQUIRED_CONFIRMATION_BLOCKS)); // at least 100 confirms
+      require(blocks[root].depth > 0)
 
       //prove that the transaction is part of the root block
       bytes32 computedHash =  _getMerkleRoot(leaf,proof);
       require(computedHash == root);
 
-      bytes32 exitTransactionHash = keccak256('exit',this,from,token,tokens);//compute this
+      uint sidechainBlockNumber = blocks[root].depth;
+
+      bytes32 exitTransactionHash = keccak256('exit',this,from,token,tokens,sidechainBlockNumber);//this is the 'hash' of a sidechain TX
       require( leaf == exitTransactionHash);
 
 
