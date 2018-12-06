@@ -380,8 +380,7 @@ contract InfernoSidechain   {
       //prove that the transaction is part of the root block
       bytes32 computedHash =  _getMerkleRoot(leaf,proof);
       require(computedHash == root);
-
-      uint sidechainBlockNumber = blocks[root].depth;
+ 
 
       bytes32 exitTransactionHash = keccak256(abi.encodePacked('exit',this,from,token,tokens,nonce));//this is the 'hash' of a sidechain TX
       require( leaf == exitTransactionHash);
