@@ -140,7 +140,7 @@ contract InfernoSidechain   {
       bytes32 root,
       bytes32 leaf
     )
-      public 
+      public
       returns (bool)
     {
       require(msg.sender == getMiningAuthority());
