@@ -66,6 +66,46 @@ library SafeMath {
   }
 }
 
+library ECRecovery {
+
+  /**
+   * @dev Recover signer address from a message by using their signature
+   * @param hash bytes32 message, the hash is the signed message. What is recovered is the signer address.
+   * @param sig bytes signature, the signature is generated using web3.eth.sign()
+   */
+  function recover(bytes32 hash, bytes sig) public pure returns (address) {
+    bytes32 r;
+    bytes32 s;
+    uint8 v;
+
+    //Check the signature length
+    if (sig.length != 65) {
+      return (address(0));
+    }
+
+    // Divide the signature in r, s and v variables
+    assembly {
+      r := mload(add(sig, 32))
+      s := mload(add(sig, 64))
+      v := byte(0, mload(add(sig, 96)))
+    }
+
+    // Version of signature should be 27 or 28, but 0 and 1 are also possible versions
+    if (v < 27) {
+      v += 27;
+    }
+
+    // If the version is correct return the signer address
+    if (v != 27 && v != 28) {
+      return (address(0));
+    } else {
+      return ecrecover(hash, v, r, s);
+    }
+  }
+
+}
+
+
 
 contract ERC20Interface {
     function totalSupply() public constant returns (uint);
@@ -115,6 +155,10 @@ contract InfernoSidechain   {
 
    //utxo hash -> import
    mapping(bytes32 => GenesisImport) public imports;
+
+
+   mapping(bytes32 => bool) public validatedExitTransactions;
+
 
    struct Block
    {
@@ -288,12 +332,36 @@ contract InfernoSidechain   {
     Either ..
       1) prevent a block from being added which has an invalid TX
       2) catch an invalid tx with a proof
+      3) require some ECSDA signature ?  giant UTXO proof
 
     */
 
     //do UTXO proofing every block submission... Actually i think this is impossible
     //should we add checkpointing ??  Let people exit if compromised?
     //
+
+
+
+
+
+    // loop through all the ECDSA signatures ???
+    //maybe only allow the tokens to stay the same quantity in a 'pouch' and not split off ?
+    function validateExitTransaction(
+
+        bytes32 leaf, //exit transaction
+
+
+        bytes32[] signature_list
+
+       ) public returns (bool)
+       {
+
+         // require ...  //ECRecovery  chain ,,,?
+
+         validatedExitTransactions[leaf] = true;
+         return true;
+       }
+
 
     //export tokens
     /*
@@ -324,6 +392,9 @@ contract InfernoSidechain   {
     {
       address from = msg.sender;
 
+
+      require(validatedExitTransactions[leaf] == true);
+
       //prove that the 'root' is part of the 'branch head root'
       bytes32 computedBranchProofHash =  _getMerkleRoot(root,branchProof);
       require(computedBranchProofHash == branchHeadRoot);
@@ -331,7 +402,7 @@ contract InfernoSidechain   {
 
       require( blockHasDeepestDepth(branchHeadRoot) );
       require(blocks[root].depth <= deepestDepth.sub(REQUIRED_CONFIRMATION_BLOCKS)); // at least 100 confirms
-      require(blocks[root].depth > 0)
+      require(blocks[root].depth > 0);
 
       //prove that the transaction is part of the root block
       bytes32 computedHash =  _getMerkleRoot(leaf,proof);
