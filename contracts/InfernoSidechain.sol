@@ -5,7 +5,6 @@ pragma solidity ^0.4.18;
 
 /*
 Contract for operating and maintaining an Inferno Sidechain
-
 Only stores a simple merkle tree root hash on the Ethereum Mainnet
 
 
@@ -314,7 +313,7 @@ contract InfernoSidechain   {
 
     //import tokens
     // This makes a new 'genesis import' hash .... saved in contract.
-    // Similar to a genesis block for the sidechain
+    // Similar to a coinbase tx for the sidechain -- new tokens enter supply 
     function importTokensToSidechain(address from,address token, uint tokens, bytes32  input) public returns (bool)
     {
 
