@@ -108,7 +108,7 @@ contract InfernoSidechain   {
     uint deepestDepth;
 
     uint totalBlockCount;
-  
+
     uint REQUIRED_DEPTH_BLOCKS = 1024;
     uint REQUIRED_CONFIRMATION_BLOCKS = 256;
 
@@ -129,7 +129,7 @@ contract InfernoSidechain   {
     bytes32 leaf; //root of previous block, also the first element of the hash to makes up Root
 
     uint depth; //the number of block parents
-    uint epochCount; //for sequentiality  ... necessary ?
+
     uint blockCount;
    }
 
@@ -151,8 +151,8 @@ contract InfernoSidechain   {
     miningContract = mContract;
 
     //add genesis block
-    lastBlockMiningEpoch = getMiningEpoch();
-    blocks[0x0] = Block(0x0,0x0,0,lastBlockMiningEpoch,totalBlockCount);
+
+    blocks[0x0] = Block(0x0,0x0,0,totalBlockCount);
 
     totalBlockCount = totalBlockCount.add(1);
   }
@@ -200,9 +200,9 @@ contract InfernoSidechain   {
   */
   function addNewBlock(
 
-      bytes32 root,
-      bytes32 leaf,
-      bytes32[] proof
+      bytes32 root, //new block hash
+      bytes32 leaf, //previous block hash
+      bytes32 proof //hash of all the new blocks tx, hash(tx1_hash,tx2_hash...txN_hash)
 
     )
       public
@@ -212,15 +212,12 @@ contract InfernoSidechain   {
       require(blocks[leaf].root == leaf || leaf == 0x0); //must build off of an existing block OR the genesis block
       require(lastBlockMiningEpoch <  getMiningEpoch()); //one new sidechain block per Mining Round
 
+      bytes32[] memory proof_array;
+      proof_array[0] = proof;
 
-      bytes32 computedHash =  _getMerkleRoot(leaf,proof);
+      bytes32 computedHash =  _getMerkleRoot(leaf,proof_array);
 
       require(computedHash == root);
-
-
-
-      //currentRootHash = root; //update to the new overall chain state
-      lastBlockMiningEpoch = getMiningEpoch();
 
 
 
@@ -237,7 +234,7 @@ contract InfernoSidechain   {
       }
 
 
-      blocks[root] = Block(root,leaf,thisBlockDepth,lastBlockMiningEpoch,totalBlockCount);
+      blocks[root] = Block(root,leaf,thisBlockDepth,totalBlockCount);
 
       totalBlockCount = totalBlockCount.add(1);
 
@@ -357,8 +354,8 @@ contract InfernoSidechain   {
       //require that the segment is exactly REQUIRED_CONFIRMATION_BLOCKS blocks long
       require(blocks[tailRoot].depth == blocks[headRoot].depth.sub(REQUIRED_CONFIRMATION_BLOCKS)); // at least 256 confirms
       require(blocks[tailRoot].depth > 0);
-      
-      //require that the exit transaction is relatively recent 
+
+      //require that the exit transaction is relatively recent
       require(blocks[tailRoot].depth > deepestDepth.sub(REQUIRED_DEPTH_BLOCKS));
 
 
