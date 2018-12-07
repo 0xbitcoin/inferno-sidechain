@@ -18,6 +18,19 @@ Sidechain Nodes must determine which of these blocks has the most valid blocks s
 
 
 
+  /*
+  Sidechain TX Formats   rev 1
+  //fee always in 0xBTC
+
+  import(from, token, tokens,fee)
+  transfer(from,to,token,tokens,fee)
+  export(from, token, tokens , fee)
+
+
+  */
+
+
+
 
 /**
  * @title SafeMath
@@ -168,6 +181,7 @@ contract InfernoSidechain   {
 
   This will typically return a smart contract but one which implements proper forwarding methods
   */
+
   function getMiningAuthority() public returns (address)
   {
     return EIP918Interface(miningContract).lastRewardTo();
@@ -179,25 +193,6 @@ contract InfernoSidechain   {
   }
 
 
-
-  /*
-  Sidechain TX Formats   rev 1
-  //fee always in 0xBTC
-
-  import(from, token, tokens,fee)
-  transfer(from,to,token,tokens,fee)
-  export(from, token, tokens , fee)
-
-  PROBLEM: A contentious 51% attacker can make new 'exit' tx with no parents/history and steal tokens
-  ...perhaps use UTXO and prove them on each new block added ? ...prove them on exit ?
-
-  */
-
-
-  /*
-  In this case, the leaf is the root of the previous block
-
-  */
   function addNewBlock(
 
       bytes32 root, //new block hash
@@ -374,6 +369,11 @@ contract InfernoSidechain   {
 
 
     /*
+
+    PROBLEM: A contentious 51% attacker can make new 'exit' tx with no parents/history and steal tokens
+    ...perhaps use UTXO and prove them on each new block added ? ...prove them on exit ?
+
+
     User must provide a root for a head-block of a branch which has a depth
     equal to the 'deepestDepth'  global.   We compute its depth to make sure.
     Then,   Require a UTXO proof that there is a withdrawl tx in a block
