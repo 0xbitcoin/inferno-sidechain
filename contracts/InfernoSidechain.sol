@@ -108,7 +108,8 @@ contract InfernoSidechain   {
     uint deepestDepth;
 
     uint totalBlockCount;
-
+  
+    uint REQUIRED_DEPTH_BLOCKS = 1024;
     uint REQUIRED_CONFIRMATION_BLOCKS = 256;
 
 
@@ -230,10 +231,10 @@ contract InfernoSidechain   {
 
       uint thisBlockDepth = parent.depth.add(1);
 
-      //if( thisBlockDepth > deepestDepth )
-    //  {
-    //    deepestDepth = thisBlockDepth;
-      //}
+       if( thisBlockDepth > deepestDepth )
+      {
+        deepestDepth = thisBlockDepth;
+      }
 
 
       blocks[root] = Block(root,leaf,thisBlockDepth,lastBlockMiningEpoch,totalBlockCount);
@@ -354,8 +355,11 @@ contract InfernoSidechain   {
     {
 
       //require that the segment is exactly REQUIRED_CONFIRMATION_BLOCKS blocks long
-      require(blocks[tailRoot].depth == blocks[headRoot].depth.sub(REQUIRED_CONFIRMATION_BLOCKS)); // at least 100 confirms
+      require(blocks[tailRoot].depth == blocks[headRoot].depth.sub(REQUIRED_CONFIRMATION_BLOCKS)); // at least 256 confirms
       require(blocks[tailRoot].depth > 0);
+      
+      //require that the exit transaction is relatively recent 
+      require(blocks[tailRoot].depth > deepestDepth.sub(REQUIRED_DEPTH_BLOCKS));
 
 
       //make sure the branch segment of the confirms (tail to head) had better than 90% consensus
