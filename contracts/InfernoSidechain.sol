@@ -123,8 +123,8 @@ contract InfernoSidechain   {
     uint totalBlockCount;
 
     uint REQUIRED_DEPTH_BLOCKS = 1024;
-    uint REQUIRED_CONFIRMATION_BLOCKS = 256;
 
+    uint REQUIRED_CONFIRMATION_BLOCKS = 256;
 
    // rootHash => Block
    mapping(bytes32 => Block) public blocks;
@@ -132,8 +132,12 @@ contract InfernoSidechain   {
    //utxo hash -> import
    mapping(bytes32 => GenesisImport) public imports;
 
-
    mapping(bytes32 => bool) public validatedExitTransactions;
+
+   //Burn tokens to communicate with peers who
+   //require minimum burned tokens.
+   //Allows for peer blacklisting
+   mapping(address => uint) public burnedTokens;
 
 
    struct Block
@@ -262,6 +266,17 @@ contract InfernoSidechain   {
      }
 
 
+     function burnTokens(address from, uint tokens ) public returns (bool)
+     {
+       address burnAddress = 0x0;
+
+       require(  ERC20Interface(miningContract).transferFrom(from, burnAddress, tokens ) );
+
+       burnedTokens[from] = burnedTokens[from].add(tokens)
+
+       return true;
+     }
+ 
 
 
     //import tokens
