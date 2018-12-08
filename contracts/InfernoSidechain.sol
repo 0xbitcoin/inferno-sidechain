@@ -143,16 +143,15 @@ contract InfernoSidechain   {
    struct Block
    {
     bytes32 root;
-    bytes32 leaf; //root of previous block, also the first element of the hash to makes up Root
+    bytes32 leaf; //root of previous block
 
     uint depth; //the number of block parents
-
     uint blockCount;
    }
 
    struct GenesisImport
    {
-     bytes32 id; //utxo id
+     bytes32 id; //referenced in the sidechain import tx
      address sender;
      address token;
      uint tokens;
@@ -162,13 +161,15 @@ contract InfernoSidechain   {
     address public miningContract;
 
 
+    event ImportedTokens(address from, address token, uint tokens, uint nonce, bytes32 id);
+    event ExportedTokens(address from, address token, uint tokens, uint nonce, bytes32 id);
+
 
    // 0xBTC is 0xb6ed7644c69416d67b522e20bc294a9a9b405b31;
   constructor(address mContract) public  {
     miningContract = mContract;
 
     //add genesis block
-
     blocks[0x0] = Block(0x0,0x0,0,totalBlockCount);
 
     totalBlockCount = totalBlockCount.add(1);
@@ -180,10 +181,10 @@ contract InfernoSidechain   {
       revert();
   }
 
-  /*
-  Based on Proof of Work, EIP 918 and Mining Contract
 
-  This will typically return a smart contract but one which implements proper forwarding methods
+
+  /*
+    Authority to add blocks based on Proof of Work, EIP 918 and Mining Contract
   */
 
   function getMiningAuthority() public returns (address)
@@ -272,58 +273,43 @@ contract InfernoSidechain   {
 
        require(  ERC20Interface(miningContract).transferFrom(from, burnAddress, tokens ) );
 
-       burnedTokens[from] = burnedTokens[from].add(tokens)
+       burnedTokens[from] = burnedTokens[from].add(tokens);
 
        return true;
      }
- 
+
 
 
     //import tokens
     // This makes a new 'genesis import' hash .... saved in contract.
     // Similar to a coinbase tx for the sidechain -- new tokens enter supply
-    function importTokensToSidechain(address from,address token, uint tokens, bytes32  input) public returns (bool)
+    function importTokensToSidechain(address from,address token, uint tokens, uint nonce) public returns (bool)
     {
 
-      bytes32 id = keccak256(abi.encodePacked( msg.sender, token, tokens, this, block.number, input ));
 
-      require( imports[id].id == 0); //must not exist
+      bytes32 id = keccak256(abi.encodePacked( from, token, tokens, this, nonce ));
 
+      require( imports[id].id == 0); //uuid must not already exist
 
-      imports[id] = GenesisImport(id, msg.sender, token, tokens);
+      imports[id] = GenesisImport(id, from, token, tokens);
 
       require(  ERC20Interface(token).transferFrom(from, this, tokens ) );
 
+      emit ImportedTokens( from, token, tokens, nonce, id );
 
       return true;
     }
 
 
 
-    /*
-    Either ..
-      1) prevent a block from being added which has an invalid TX
-      2) catch an invalid tx with a proof
-      3) require some ECSDA signature ?  giant UTXO proof
-
-    */
-
-    //do UTXO proofing every block submission... Actually i think this is impossible
-    //should we add checkpointing ??  Let people exit if compromised?
-    //
 
 
-
-
-
-
-    //export tokens
-
+    //Export tokens from the sidechain to mainnet
     function exportTokensFromSidechain(
       bytes32 branchHeadRoot,
       bytes32[] branchProof, //prove that the 'root' is part of the 'branch head root', just all the roots of the blocks between
 
-      bytes32 root,
+      bytes32 root, //hash of the block containing the exit transaction
       bytes32 leaf, //exit transaction
       bytes32[] proof, //all other tx in this block (their hashes)
 
@@ -334,47 +320,54 @@ contract InfernoSidechain   {
     )
     {
 
+      bytes32 exitTransactionHash = keccak256(abi.encodePacked('exit',this,from,token,tokens,nonce));//this is the 'hash' of a sidechain TX
+      require( leaf == exitTransactionHash);
+
       //must not have exported this leaf before
       require(validatedExitTransactions[leaf] != true);
 
-      require(_validateQualityConsensus(branchHeadRoot , root   ));
+
 
       //prove that the 'root' is part of the 'branch head root' (no way to compute branchProof to fit)
       require(_getMerkleRoot(root,branchProof) == branchHeadRoot);
 
-
       //prove that the transaction is part of the root block (no way to compute proof to fit)
       require(_getMerkleRoot(leaf,proof) == root);
 
-      bytes32 exitTransactionHash = keccak256(abi.encodePacked('exit',this,from,token,tokens,nonce));//this is the 'hash' of a sidechain TX
-      require( leaf == exitTransactionHash);
+
+      require(_validateQualityConsensus(branchHeadRoot, root));
+
+
 
 
       validatedExitTransactions[leaf] = true;
-      require(  ERC20Interface(token).transfer(from, tokens ));
+      require( ERC20Interface(token).transfer(from, tokens ) );
+
+      emit ExportedTokens( from, token, tokens, nonce, exitTransactionHash );
+
 
     }
 
     //requires that the head block ultimately built on top of the tail block
     //requires that there is REQUIRED_CONFIRMATION_BLOCKS of blocks in between
     //requires that there was high quality consensus (>90%) over that confirmation segment
-    function _validateQualityConsensus(bytes32 headRoot,bytes32 tailRoot) public returns (bool)
+    function _validateQualityConsensus(bytes32 headRoot, bytes32 tailRoot) public returns (bool)
     {
 
       //require that the segment is exactly REQUIRED_CONFIRMATION_BLOCKS blocks long
       require(blocks[tailRoot].depth == blocks[headRoot].depth.sub(REQUIRED_CONFIRMATION_BLOCKS)); // at least 256 confirms
       require(blocks[tailRoot].depth > 0);
 
-      //require that the exit transaction is relatively recent
-      require(blocks[tailRoot].depth > deepestDepth.sub(REQUIRED_DEPTH_BLOCKS));
+      //require that the exit transaction is relatively recent, this just allows them to expire
+      require(deepestDepth < REQUIRED_DEPTH_BLOCKS || blocks[tailRoot].depth > deepestDepth.sub(REQUIRED_DEPTH_BLOCKS));
 
 
       //make sure the branch segment of the confirms (tail to head) had better than 90% consensus
       uint blockCountDifference = blocks[headRoot].blockCount.sub( blocks[tailRoot].blockCount );
       uint blockDepthDifference = blocks[headRoot].depth.sub( blocks[tailRoot].depth );
 
+      //block count across the branch span must be less than 110% of the depth across it!
       uint blockCountDifferenceLimit = blockDepthDifference.mul(110).div(100);
-
       require( blockCountDifference < blockCountDifferenceLimit );
 
       return true;
